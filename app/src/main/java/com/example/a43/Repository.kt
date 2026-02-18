@@ -13,3 +13,4 @@ data class Repository(
     val stargazersCount: Int,
     val language: String?
 )
+
