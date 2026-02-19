@@ -63,13 +63,14 @@ fun <T> CoroutineScope.debounce(waitMs: Long = 500L, destinationFunction: suspen
 
 suspend fun searchByName(NameFile: String, prefic: String, context: ComponentActivity): List<Repository> {
     // переключение потока, возвращает последнее действие
-    return withContext(Dispatchers.IO){
+    return withContext(Dispatchers.IO) {
         delay(1000L)
         val jsonRepository = context.assets.open(NameFile).bufferedReader().use { it.readText() }
         if (prefic.isEmpty())
             emptyList()
         else
-            Json.decodeFromString<List<Repository>>(jsonRepository).filter { it.name.contains(prefic) }
+            Json.decodeFromString<List<Repository>>(jsonRepository)
+                .filter { it.name.contains(prefic) }
     }
 }
 

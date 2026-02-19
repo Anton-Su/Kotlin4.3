@@ -11,6 +11,6 @@ data class Repository(
     val description: String,
     @SerialName(value = "stargazers_count")
     val stargazersCount: Int,
-    val language: String?
+    val language: String
 )
 
