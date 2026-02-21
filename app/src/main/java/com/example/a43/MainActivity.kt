@@ -50,6 +50,8 @@ class MainActivity : ComponentActivity() {
 }
 
 
+
+
 fun <T> CoroutineScope.debounce(waitMs: Long = 500L, destinationFunction: suspend(T) -> Unit): (T) -> Unit {
     var debounceJob: Job? = null
     return { param: T ->
@@ -60,6 +62,7 @@ fun <T> CoroutineScope.debounce(waitMs: Long = 500L, destinationFunction: suspen
         }
     }
 }
+
 
 suspend fun searchByName(NameFile: String, prefic: String, context: ComponentActivity): List<Repository> {
     // переключение потока, возвращает последнее действие
@@ -81,16 +84,15 @@ fun Greeting(modifier: Modifier = Modifier, context: ComponentActivity) {
     val textState = remember { mutableStateOf("repo-2") }
     val reposState = remember { mutableStateOf<List<Repository>>(emptyList()) }
     val isLoading = remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        reposState.value = searchByName(NameFile = jsonName, prefic = textState.value, context = context)
-        isLoading.value = false
-    }
     val debouncedFun = remember {
         scope.debounce<String>(1000L) { input ->
             isLoading.value = true
             reposState.value = searchByName(NameFile = jsonName, prefic = input, context = context)
             isLoading.value = false
         }
+    }
+    LaunchedEffect(Unit) {
+        debouncedFun(textState.value)
     }
     Column(modifier = Modifier.padding(top = 60.dp, start = 16.dp, end = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()){
