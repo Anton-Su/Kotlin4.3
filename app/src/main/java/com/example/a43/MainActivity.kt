@@ -17,6 +17,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,12 +38,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val jsonDataSource = JsonDataSource(this)
+        val repository = RepositoryImpl(jsonDataSource)
+        val getTodosUseCase = GetAllUseCase(repository)
+        val toggleTodoUseCase = SearchByNameUseCase(repository)
+        val viewModel = ViewModel(getTodosUseCase, toggleTodoUseCase)
         setContent {
             _43Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
                         modifier = Modifier.padding(innerPadding),
-                        context = this
+                        viewModel,
                     )
                 }
             }
@@ -50,60 +57,21 @@ class MainActivity : ComponentActivity() {
 }
 
 
-
-
-fun <T> CoroutineScope.debounce(waitMs: Long = 500L, destinationFunction: suspend(T) -> Unit): (T) -> Unit {
-    var debounceJob: Job? = null
-    return { param: T ->
-        debounceJob?.cancel()
-        debounceJob = launch {
-            delay(waitMs)
-            destinationFunction(param)
-        }
-    }
-}
-
-
-suspend fun searchByName(NameFile: String, prefic: String, context: ComponentActivity): List<Repository> {
-    // переключение потока, возвращает последнее действие
-    return withContext(Dispatchers.IO) {
-        delay(1000L)
-        val jsonRepository = context.assets.open(NameFile).bufferedReader().use { it.readText() }
-        if (prefic.isEmpty())
-            emptyList()
-        else
-            Json.decodeFromString<List<Repository>>(jsonRepository)
-                .filter { it.name.contains(prefic) }
-    }
-}
-
 @Composable
-fun Greeting(modifier: Modifier = Modifier, context: ComponentActivity) {
-    val jsonName = "github_repos.json"
-    val scope = rememberCoroutineScope()
-    val textState = remember { mutableStateOf("repo-2") }
-    val reposState = remember { mutableStateOf<List<Repository>>(emptyList()) }
-    val isLoading = remember { mutableStateOf(true) }
-    val debouncedFun = remember {
-        scope.debounce<String>(1000L) { input ->
-            isLoading.value = true
-            reposState.value = searchByName(NameFile = jsonName, prefic = input, context = context)
-            isLoading.value = false
-        }
-    }
-    LaunchedEffect(Unit) {
-        debouncedFun(textState.value)
-    }
+fun Greeting(modifier: Modifier = Modifier, viewModel: ViewModel) {
+    val reposState = viewModel.repos.collectAsState()
+    val isLoadingState = viewModel.isLoading.collectAsState()
+    val textState = remember { mutableStateOf("") }
     Column(modifier = Modifier.padding(top = 60.dp, start = 16.dp, end = 16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()){
             TextField(
                 value = textState.value,
                 onValueChange = {
                     textState.value = it
-                    debouncedFun(it) },
+                    viewModel.searchByPrefix(it) },
                 modifier = Modifier.weight(1f)
             )
-            if (isLoading.value) {
+            if (isLoadingState.value.not()) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(40.dp)
                 )
