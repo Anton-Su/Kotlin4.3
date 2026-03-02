@@ -16,6 +16,7 @@ class RepositoryImpl(private val dataSource: JsonDataSource) : Repository {
         return repos ?: emptyList()
     }
     override suspend fun searchByName(prefix: String): List<RepositoryItem> {
+        // ensureLoaded() по факту не нужен
         delay(1500)
         if (prefix.isEmpty())
             return emptyList()
